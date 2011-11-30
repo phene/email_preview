@@ -11,7 +11,6 @@ module EmailPreview
     def preview
       self.callback.call
     end
-    alias :preview_without_transaction :preview
     def preview_with_transaction
       return preview_without_transaction unless EmailPreview.transactional?
       mail = nil
@@ -21,6 +20,7 @@ module EmailPreview
       end
       mail
     end
+    alias_method_chain :preview, :transaction
   end
 
 end
