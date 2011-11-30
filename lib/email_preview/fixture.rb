@@ -9,7 +9,7 @@ module EmailPreview
       self.callback = block
     end
     def preview
-      @mail ||= self.callback.call
+      self.callback.call
     end
     def preview_with_transaction
       return preview_without_transaction unless EmailPreview.transactional?
