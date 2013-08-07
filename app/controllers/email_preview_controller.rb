@@ -1,13 +1,14 @@
 class EmailPreviewController < ApplicationController
-  unloadable
-  layout nil
+  layout false
 
   before_filter :enforce_allowed_environments
+  around_filter :set_delivery_method, :only => :deliver
   before_filter :build_email, :only => [:show, :deliver, :details, :preview]
 
   def deliver
+    session[:email_preview_to] = params[:to]
     @mail.to params[:to]
-    @mail.deliver
+    @mail.respond_to?(:deliver_now) ? @mail.deliver_now : @mail.deliver
     redirect_to details_email_preview_path(params[:id])
   end
   def preview
@@ -24,8 +25,14 @@ class EmailPreviewController < ApplicationController
     raise "'#{Rails.env}' is not in the supported list of environments from EmailPreview.allowed_environments: #{EmailPreview.allowed_environments.inspect}" unless EmailPreview.allowed_environments.include?(Rails.env)
   end
   def build_email
-    @fixture = EmailPreview[params[:id]]
     @mail = EmailPreview.preview params[:id]
     @parts = @mail.multipart? ? @mail.parts : [@mail]
+  end
+  def set_delivery_method
+    previous_delivery_method = ActionMailer::Base.delivery_method
+    ActionMailer::Base.delivery_method = EmailPreview.delivery_method if EmailPreview.delivery_method
+    yield
+  ensure
+    ActionMailer::Base.delivery_method = previous_delivery_method
   end
 end
